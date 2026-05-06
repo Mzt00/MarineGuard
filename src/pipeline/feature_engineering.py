@@ -10,9 +10,9 @@ IMO MSC-FAL.1/Circ.3/Rev.8
 
 Public endpoints
 
-  engineer(df)          → pd.DataFrame   (original columns + engineered columns)
-  get_model_features()  → list[str]      (feature columns for risk model)
-  get_lloyd_features()  → list[str]      (feature columns for premium calculator)
+  engineer(df)          To pd.DataFrame   (original columns + engineered columns)
+  get_model_features()  To list[str]      (feature columns for risk model)
+  get_lloyd_features()  To list[str]      (feature columns for premium calculator)
 """
 
 from __future__ import annotations
@@ -255,7 +255,7 @@ def get_lloyd_features() -> list[str]:
     return LLOYD_FEATURES.copy()
 
 if __name__ == "__main__":
-    from src.pipeline.loader import load, summary   # noqa: PLC0415
+    from loader import load, summary   # noqa: PLC0415
 
     raw = load()
     engineered = engineer(raw)
