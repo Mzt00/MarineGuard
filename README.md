@@ -33,7 +33,7 @@ This project transforms raw incident reports into actionable risk intelligence b
   incident constitutes a confirmed attack.
 - Assigning every incident to a risk band (Low / Moderate / High / Critical).
 - Displaying all results through a tabbed Streamlit dashboard with Plotly visualisations.
-
+  [Live Demo](https://marineguard.streamlit.app)
 ---
 
 ## 2. Dataset
