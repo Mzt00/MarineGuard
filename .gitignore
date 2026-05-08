@@ -1,0 +1,63 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# VS Code settings
+.vscode/
+
+# PyCharm
+.idea/
+*.iml
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Environment and secrets
+*.env
+.env.*
+credentials.json
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Coverage
+.coverage
+htmlcov/
+.coverage.*
+
+# MacOS
+.AppleDouble
+.LSOverride
+
+# Windows
+desktop.ini
+$RECYCLE.BIN/
+
+# Python packaging cache
+pip-wheel-metadata/
+*/pip-wheel-metadata/
+
+# mypy
+.mypy_cache/
+
+# Pyre type checker
+.pyre/
