@@ -101,7 +101,7 @@ pirate_attacks_clean.csv
 
 ```bash
 # Clone or download the project
-cd zain_prob
+cd MarineGuard
 
 # Create and activate virtual environment
 python3 -m venv venv
@@ -219,51 +219,27 @@ Sidebar filters (region, year range, risk band, minimum probability) apply acros
 
 ## 9. Testing
 
-The test suite contains **100 unit tests** across four files, covering every component of
-the pipeline with both structural and logical assertions.
+This repository does not currently include a dedicated automated test suite.
 
-```bash
-source venv/bin/activate
-pytest tests/ -v
-```
-
-Expected result: `100 passed`.
-
-| File | Tests | Coverage |
-|---|---|---|
-| `tests/test_data_loading.py` | 23 | `detect_outliers_iqr`, `load_data`, `preprocess_data` |
-| `tests/test_feature_engineering.py` | 29 | `engineer_features` (all 12 features) |
-| `tests/test_pipeline.py` | 22 | `prepare_X_y`, `build_pipeline`, `build_classification_pipeline` |
-| `tests/test_model_training.py` | 26 | `run_kfold_cv`, `run_classification_cv`, `fit_final_model`, `generate_attack_probability_column` |
+Manual validation can be performed by running the pipeline and reviewing output files.
 
 ---
 
 ## 10. Project Structure
 
 ```
-zain_prob/
-├── app.py                      # Core ML pipeline
-├── gui.py                      # Streamlit dashboard
-├── pirate_attacks_clean.csv    # Input dataset
-├── requirements.txt            # Python dependencies
+MarineGuard/
+├── app.py
+├── gui.py
+├── generate_report.py
+├── insurance_premium.py
+├── pirate_attacks_clean.csv
+├── pirate_attacks_with_probability.csv
+├── requirements.txt
 ├── .gitignore
 ├── README.md
-│
-├── tests/
-│   ├── __init__.py
-│   ├── test_data_loading.py
-│   ├── test_feature_engineering.py
-│   ├── test_pipeline.py
-│   └── test_model_training.py
-│
-└── documentation/
-    ├── 01_overview.md
-    ├── 02_data_loading_and_preprocessing.md
-    ├── 03_feature_engineering.md
-    ├── 04_regression_model.md
-    ├── 05_classification_model.md
-    ├── 06_gui_dashboard.md
-    └── 07_test_suite.md
+├── assets/
+└── __pycache__/
 ```
 
 ---
