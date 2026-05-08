@@ -239,7 +239,7 @@ MarineGuard/
 ├── .gitignore
 ├── README.md
 ├── assets/
-└── __pycache__/
+
 ```
 
 ---
