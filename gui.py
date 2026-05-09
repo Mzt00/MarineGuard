@@ -599,14 +599,6 @@ def run_full_pipeline(filepath: str, output_path: str):
         "importance_df": importance_df,
         "y_actual":      y.tolist(),
         "y_pred":        y_pred.tolist(),
-        "cv_r2_train":   cv_metrics["r2_train"].tolist(),
-        "cv_r2_test":    cv_metrics["r2_test"].tolist(),
-        "cv_mae_train":  cv_metrics["mae_train"].tolist(),
-        "cv_mae_test":   cv_metrics["mae_test"].tolist(),
-        "cv_rmse_train": cv_metrics["rmse_train"].tolist(),
-        "cv_rmse_test":  cv_metrics["rmse_test"].tolist(),
-        "clf_roc_train": clf_cv["roc_train"].tolist(),
-        "clf_roc_test":  clf_cv["roc_test"].tolist(),
         "clf_acc_train": clf_cv["acc_train"].tolist(),
         "clf_acc_test":  clf_cv["acc_test"].tolist(),
         "clf_brier":     clf_cv["brier_test"].tolist(),
@@ -657,23 +649,11 @@ df_clean      = results["df_clean"]
 df_with_prob  = results["df_with_prob"]
 importance_df = results["importance_df"]
 
-n_folds = len(results["cv_r2_test"])
+n_folds = len(results["clf_acc_test"])
 folds   = [f"F{i+1}" for i in range(n_folds)]
-
-cv_reg_df = pd.DataFrame({
-    "Fold":       folds,
-    "Train R²":   np.round(results["cv_r2_train"], 4),
-    "Test R²":    np.round(results["cv_r2_test"], 4),
-    "Train MAE":  np.round(results["cv_mae_train"], 4),
-    "Test MAE":   np.round(results["cv_mae_test"], 4),
-    "Train RMSE": np.round(results["cv_rmse_train"], 4),
-    "Test RMSE":  np.round(results["cv_rmse_test"], 4),
-})
 
 cv_clf_df = pd.DataFrame({
     "Fold":       folds,
-    "Train AUC":  np.round(results["clf_roc_train"], 4),
-    "Test AUC":   np.round(results["clf_roc_test"], 4),
     "Train Acc":  np.round(results["clf_acc_train"], 4),
     "Test Acc":   np.round(results["clf_acc_test"], 4),
     "Brier":      np.round(results["clf_brier"], 4),
@@ -925,57 +905,6 @@ with tab2:
 with tab3:
     section("Regression Model — Shore Distance Prediction")
 
-    r2_mean   = float(np.mean(results["cv_r2_test"]))
-    mae_mean  = float(np.mean(results["cv_mae_test"]))
-    rmse_mean = float(np.mean(results["cv_rmse_test"]))
-    gap_r2    = float(np.mean(results["cv_r2_train"])) - r2_mean
-
-    kpi_row([
-        kpi_card("Mean Test R²",      f"{r2_mean:.4f}",   "blue",  "📈"),
-        kpi_card("Mean Test MAE",     f"{mae_mean:.4f}",  "mid",   "📉"),
-        kpi_card("Mean Test RMSE",    f"{rmse_mean:.4f}", "teal",  "📊"),
-        kpi_card("Train-Test R² Gap", f"{gap_r2:.4f}",   "amber", "⚖️"),
-    ])
-    divider()
-
-    c1, c2 = st.columns(2)
-    with c1:
-        ct("Train vs Test R² per Fold")
-        fig_r2 = go.Figure()
-        fig_r2.add_trace(go.Bar(
-            name="Train R²", x=folds, y=results["cv_r2_train"],
-            marker_color=OCEAN2, marker_line_width=0,
-        ))
-        fig_r2.add_trace(go.Bar(
-            name="Test R²", x=folds, y=results["cv_r2_test"],
-            marker_color=AMBER, marker_line_width=0,
-        ))
-        fig_r2.update_layout(**chart_layout(300), barmode="group", yaxis_title="R²",
-                             legend=dict(orientation="h", bgcolor="rgba(0,0,0,0)"))
-        st.plotly_chart(fig_r2, use_container_width=True)
-
-    with c2:
-        ct("MAE & RMSE per Fold")
-        fig_mae = go.Figure()
-        fig_mae.add_trace(go.Scatter(
-            x=folds, y=results["cv_mae_test"], name="Test MAE",
-            mode="lines+markers", line=dict(color=KELP, width=2.5),
-            marker=dict(size=8),
-        ))
-        fig_mae.add_trace(go.Scatter(
-            x=folds, y=results["cv_rmse_test"], name="Test RMSE",
-            mode="lines+markers", line=dict(color=SURF, width=2.5, dash="dot"),
-            marker=dict(size=8, symbol="diamond"),
-        ))
-        fig_mae.add_hline(
-            y=mae_mean, line_dash="dash", line_color=AMBER,
-            annotation_text=f"MAE mean={mae_mean:.3f}",
-            annotation_font_color=AMBER,
-        )
-        fig_mae.update_layout(**chart_layout(300), yaxis_title="Error (log km)",
-                              legend=dict(orientation="h", bgcolor="rgba(0,0,0,0)"))
-        st.plotly_chart(fig_mae, use_container_width=True)
-
     divider()
     y_actual  = np.array(results["y_actual"])
     y_pred    = np.array(results["y_pred"])
@@ -1025,10 +954,6 @@ with tab3:
     fig_imp.update_layout(**chart_layout(540), xaxis_title="Importance", yaxis_title="")
     st.plotly_chart(fig_imp, use_container_width=True)
 
-    divider()
-    ct("10-Fold CV Detail")
-    st.dataframe(cv_reg_df, use_container_width=True, hide_index=True)
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 4 — Classification Model
@@ -1036,40 +961,31 @@ with tab3:
 with tab4:
     section("Classification Model — Attack Occurrence Prediction")
 
-    auc_mean   = float(np.mean(results["clf_roc_test"]))
     acc_mean   = float(np.mean(results["clf_acc_test"]))
     brier_mean = float(np.mean(results["clf_brier"]))
-    gap_auc    = float(np.mean(results["clf_roc_train"])) - auc_mean
 
     kpi_row([
-        kpi_card("Mean ROC-AUC",       f"{auc_mean:.4f}",   "blue",  "🎯"),
         kpi_card("Mean Accuracy",      f"{acc_mean:.4f}",   "mid",   "✅"),
         kpi_card("Mean Brier Score",   f"{brier_mean:.4f}", "teal",  "📐"),
-        kpi_card("Train-Test AUC Gap", f"{gap_auc:.4f}",    "amber", "⚖️"),
     ])
     divider()
 
     c1, c2 = st.columns(2)
     with c1:
-        ct("Train vs Test ROC-AUC per Fold")
-        fig_auc = go.Figure()
-        fig_auc.add_trace(go.Bar(
-            name="Train AUC", x=folds, y=results["clf_roc_train"],
+        ct("Train vs Test Accuracy per Fold")
+        fig_acc_fold = go.Figure()
+        fig_acc_fold.add_trace(go.Bar(
+            name="Train Accuracy", x=folds, y=results["clf_acc_train"],
             marker_color=OCEAN2, marker_line_width=0,
         ))
-        fig_auc.add_trace(go.Bar(
-            name="Test AUC", x=folds, y=results["clf_roc_test"],
+        fig_acc_fold.add_trace(go.Bar(
+            name="Test Accuracy", x=folds, y=results["clf_acc_test"],
             marker_color=AMBER, marker_line_width=0,
         ))
-        fig_auc.add_hline(
-            y=auc_mean, line_dash="dot", line_color=SURF,
-            annotation_text=f"Mean AUC={auc_mean:.4f}",
-            annotation_font_color=SURF,
-        )
-        fig_auc.update_layout(**chart_layout(300), barmode="group", yaxis_title="ROC-AUC",
-                              yaxis_range=[0.5, 1.0],
-                              legend=dict(orientation="h", bgcolor="rgba(0,0,0,0)"))
-        st.plotly_chart(fig_auc, use_container_width=True)
+        fig_acc_fold.update_layout(**chart_layout(300), barmode="group", yaxis_title="Accuracy",
+                                   yaxis_range=[0.5, 1.0],
+                                   legend=dict(orientation="h", bgcolor="rgba(0,0,0,0)"))
+        st.plotly_chart(fig_acc_fold, use_container_width=True)
 
     with c2:
         ct("Accuracy & Brier Score per Fold")
@@ -1095,43 +1011,6 @@ with tab4:
             legend=dict(orientation="h", bgcolor="rgba(0,0,0,0)"),
         )
         st.plotly_chart(fig_acc, use_container_width=True)
-
-    divider()
-    ct("Performance Gauges")
-    g1, g2, g3 = st.columns(3)
-
-    def _gauge(val, title, ref):
-        steps = [
-            dict(range=[0,    0.50], color="#051428"),
-            dict(range=[0.50, 0.75], color="#0b4f6c"),
-            dict(range=[0.75, 0.90], color="#1a7a9c"),
-            dict(range=[0.90, 1.00], color="#1abc9c"),
-        ]
-        fig = go.Figure(go.Indicator(
-            mode="gauge+number+delta",
-            value=val,
-            title=dict(text=title, font=dict(color="#c8e8f5", size=13, family="Syne, sans-serif")),
-            delta=dict(reference=ref, valueformat=".4f"),
-            number=dict(valueformat=".4f", font=dict(color="#e8f9ff", size=18, family="Syne, sans-serif")),
-            gauge=dict(
-                axis=dict(range=[0, 1], tickcolor=OCEAN2,
-                          tickfont=dict(color="rgba(168,230,240,.55)")),
-                bar=dict(color=SURF, thickness=0.22),
-                bgcolor=CHART_BG, borderwidth=0,
-                steps=steps,
-                threshold=dict(line=dict(color=KELP, width=3), thickness=0.75, value=ref),
-            ),
-        ))
-        fig.update_layout(
-            paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG,
-            margin=dict(l=20, r=20, t=60, b=20), height=240,
-            font=dict(color="#e8f9ff"),
-        )
-        return fig
-
-    with g1: st.plotly_chart(_gauge(auc_mean, "ROC-AUC", 0.9), use_container_width=True)
-    with g2: st.plotly_chart(_gauge(acc_mean, "Accuracy", 0.85), use_container_width=True)
-    with g3: st.plotly_chart(_gauge(1.0 - brier_mean, "1 − Brier", 0.85), use_container_width=True)
 
     divider()
     c1, c2 = st.columns(2)
