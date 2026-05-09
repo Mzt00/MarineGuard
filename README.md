@@ -143,21 +143,13 @@ Both models use identical hyperparameters evaluated via 10-fold cross-validation
 
 Target: `log_shore_distance`
 
-| Metric | Mean (10-fold CV) |
-|---|---|
-| R² (test) | 0.7524 |
-| MAE (test) | 0.61 |
-| RMSE (test) | 0.82 |
+Evaluated using 10-fold cross-validation; details are available in the app.
 
 ### Classification Model — GradientBoostingClassifier
 
 Target: `attack_occurred` (binary)
 
-| Metric | Mean (10-fold Stratified CV) |
-|---|---|
-| AUC-ROC (test) | 0.9044 |
-| Accuracy (test) | 0.8468 |
-| Brier Score (test) | 0.11 |
+Evaluated using 10-fold stratified cross-validation; details are available in the app.
 
 ### Shared Hyperparameters
 
@@ -209,8 +201,8 @@ The Streamlit dashboard (`gui.py`) provides five tabs:
 |---|---|
 | Dataset Overview | Data table, download button, attack type and vessel status charts |
 | Attack Patterns | Geographic scatter map, temporal trend, seasonal heatmap, regional breakdown |
-| Regression Model | CV R² distribution, MAE/RMSE per fold, feature importances, predicted vs. actual |
-| Classification Model | AUC-ROC per fold, accuracy, Brier score, confusion matrix, feature importances |
+| Regression Model | CV distribution, feature importances, predicted vs. actual |
+| Classification Model | CV distribution, class balance, probability analysis, feature importances |
 | Probability Analysis | Probability histogram, risk band distribution, top-10 highest-risk incidents, download |
 
 Sidebar filters (region, year range, risk band, minimum probability) apply across all tabs.

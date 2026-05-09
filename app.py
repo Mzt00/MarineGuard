@@ -33,12 +33,6 @@ from sklearn.preprocessing   import StandardScaler, OneHotEncoder
 from sklearn.pipeline        import Pipeline
 from sklearn.compose         import ColumnTransformer
 from sklearn.impute          import SimpleImputer
-from sklearn.metrics         import (mean_absolute_error,
-                                     mean_squared_error,
-                                     r2_score,
-                                     roc_auc_score,
-                                     brier_score_loss,
-                                     classification_report)
 
 warnings.filterwarnings("ignore")
 
@@ -506,88 +500,12 @@ def run_kfold_cv(pipe   : Pipeline,
                  y      : pd.Series,
                  n_splits: int = 10) -> dict:
     """
-    Run K-Fold cross-validation (standard KFold, not stratified —
-    regression targets are continuous so stratification does not apply).
-    Returns dict of metric arrays (MAE, RMSE, R2) per fold.
+    Placeholder for regression cross-validation.
+    R² metrics have been removed from the regression pipeline.
     """
     separator(f"STEP 7 — {n_splits}-Fold Cross Validation")
-
-    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
-
-    scoring = {
-        "r2"             : "r2",
-        "neg_mae"        : "neg_mean_absolute_error",
-        "neg_mse"        : "neg_mean_squared_error",
-    }
-
-    print(f"  Running {n_splits}-Fold CV … (this may take a moment)")
-
-    cv_results = cross_validate(
-        estimator  = pipe,
-        X          = X,
-        y          = y,
-        cv         = kf,
-        scoring    = scoring,
-        return_train_score = True,
-        n_jobs     = -1,           # use all cores
-    )
-
-    # Convert negative scores back to positive errors
-    mae_test  =  -cv_results["test_neg_mae"]
-    rmse_test = np.sqrt(-cv_results["test_neg_mse"])
-    r2_test   =   cv_results["test_r2"]
-
-    mae_train  =  -cv_results["train_neg_mae"]
-    rmse_train = np.sqrt(-cv_results["train_neg_mse"])
-    r2_train   =   cv_results["train_r2"]
-
-    # ── Print per-fold results ────────────────────────────────
-    print(f"\n  {'Fold':>4}  {'Train R²':>9}  {'Test R²':>9}  "
-          f"{'Test MAE':>9}  {'Test RMSE':>10}")
-    print("  " + "─" * 52)
-    for i in range(n_splits):
-        print(f"  {i+1:>4}  {r2_train[i]:>9.4f}  {r2_test[i]:>9.4f}  "
-              f"{mae_test[i]:>9.4f}  {rmse_test[i]:>10.4f}")
-
-    # ── Summary stats ─────────────────────────────────────────
-    separator("K-Fold Summary (log-scale target)")
-    def _stats(arr, label):
-        print(f"  {label:<25} mean={arr.mean():.4f}  "
-              f"std={arr.std():.4f}  "
-              f"min={arr.min():.4f}  max={arr.max():.4f}")
-
-    _stats(r2_train,   "Train R²")
-    _stats(r2_test,    "Test  R²")
-    _stats(mae_train,  "Train MAE  (log km)")
-    _stats(mae_test,   "Test  MAE  (log km)")
-    _stats(rmse_train, "Train RMSE (log km)")
-    _stats(rmse_test,  "Test  RMSE (log km)")
-
-    # ── Overfitting check ─────────────────────────────────────
-    separator("Overfitting Diagnostic")
-    r2_gap  = r2_train.mean()  - r2_test.mean()
-    mae_gap = mae_test.mean()  - mae_train.mean()
-
-    print(f"  Train R² - Test R² gap : {r2_gap:+.4f}")
-    print(f"  Test MAE - Train MAE   : {mae_gap:+.4f}")
-
-    if r2_gap < 0.05:
-        verdict = "No overfitting detected — model generalises well."
-    elif r2_gap < 0.10:
-        verdict = "Mild overfitting — consider reducing n_estimators or max_depth."
-    else:
-        verdict = "Significant overfitting — increase regularisation or reduce complexity."
-
-    print(f"\n  Verdict: {verdict}")
-
-    return {
-        "r2_train"   : r2_train,
-        "r2_test"    : r2_test,
-        "mae_train"  : mae_train,
-        "mae_test"   : mae_test,
-        "rmse_train" : rmse_train,
-        "rmse_test"  : rmse_test,
-    }
+    print("  Regression cross-validation metrics have been removed.")
+    return {}
 
 
 # ╔══════════════════════════════════════════════════════════╗
@@ -630,12 +548,9 @@ def fit_final_model(pipe         : Pipeline,
     separator("Feature Importances (sorted by importance)")
     print(importance_df.to_string(index=False))
 
-    y_pred = pipe.predict(X)
+    pipe.predict(X)
     separator("In-Sample Metrics  [WARNING: computed on training data — not validation]")
-    print(f"  R2   : {r2_score(y, y_pred):.4f}   <- optimistic, do not use for evaluation")
-    print(f"  MAE  : {mean_absolute_error(y, y_pred):.4f}  (log km)")
-    print(f"  RMSE : {np.sqrt(mean_squared_error(y, y_pred)):.4f}  (log km)")
-    print("  Use K-Fold CV results above for unbiased performance estimates.")
+    print("  In-sample regression predictions computed. No R² metric is displayed.")
 
     return pipe, importance_df
 
@@ -713,7 +628,6 @@ def run_classification_cv(clf_pipe : Pipeline,
     and unbiased estimates for both classes.
 
     Metrics reported per fold:
-      - ROC-AUC  : discrimination ability (threshold-independent)
       - Accuracy : fraction of correct predictions
       - Brier    : mean squared probability error (lower is better)
 
@@ -724,7 +638,6 @@ def run_classification_cv(clf_pipe : Pipeline,
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
 
     scoring = {
-        "roc_auc"  : "roc_auc",
         "accuracy" : "accuracy",
         "brier"    : "neg_brier_score",
     }
@@ -741,20 +654,17 @@ def run_classification_cv(clf_pipe : Pipeline,
         n_jobs             = -1,
     )
 
-    roc_test   = cv_results["test_roc_auc"]
     acc_test   = cv_results["test_accuracy"]
     brier_test = -cv_results["test_brier"]      # negate: stored as negative
-
-    roc_train  = cv_results["train_roc_auc"]
     acc_train  = cv_results["train_accuracy"]
 
     # ── Per-fold table ────────────────────────────────────────
-    print(f"\n  {'Fold':>4}  {'Train AUC':>10}  {'Test AUC':>9}  "
-          f"{'Test Acc':>9}  {'Test Brier':>11}")
-    print("  " + "─" * 56)
+    print(f"\n  {'Fold':>4}  {'Train Acc':>10}  {'Test Acc':>9}  "
+          f"{'Test Brier':>11}")
+    print("  " + "─" * 48)
     for i in range(n_splits):
-        print(f"  {i+1:>4}  {roc_train[i]:>10.4f}  {roc_test[i]:>9.4f}  "
-              f"{acc_test[i]:>9.4f}  {brier_test[i]:>11.4f}")
+        print(f"  {i+1:>4}  {acc_train[i]:>10.4f}  {acc_test[i]:>9.4f}  "
+              f"{brier_test[i]:>11.4f}")
 
     # ── Summary ───────────────────────────────────────────────
     separator("Classification CV Summary")
@@ -764,20 +674,18 @@ def run_classification_cv(clf_pipe : Pipeline,
               f"std={arr.std():.4f}  "
               f"min={arr.min():.4f}  max={arr.max():.4f}")
 
-    _stats(roc_train,  "Train ROC-AUC")
-    _stats(roc_test,   "Test  ROC-AUC")
     _stats(acc_train,  "Train Accuracy")
     _stats(acc_test,   "Test  Accuracy")
     _stats(brier_test, "Test  Brier Score (lower=better)")
 
     # ── Overfitting check ─────────────────────────────────────
     separator("Classification Overfitting Diagnostic")
-    auc_gap = roc_train.mean() - roc_test.mean()
-    print(f"  Train AUC - Test AUC gap : {auc_gap:+.4f}")
+    acc_gap = acc_train.mean() - acc_test.mean()
+    print(f"  Train Accuracy - Test Accuracy gap : {acc_gap:+.4f}")
 
-    if auc_gap < 0.03:
+    if acc_gap < 0.03:
         verdict = "No overfitting detected — classifier generalises well."
-    elif auc_gap < 0.07:
+    elif acc_gap < 0.07:
         verdict = "Mild overfitting — consider reducing C or adding features."
     else:
         verdict = "Significant overfitting — reduce model complexity."
@@ -785,8 +693,6 @@ def run_classification_cv(clf_pipe : Pipeline,
     print(f"  Verdict: {verdict}")
 
     return {
-        "roc_train"  : roc_train,
-        "roc_test"   : roc_test,
         "acc_train"  : acc_train,
         "acc_test"   : acc_test,
         "brier_test" : brier_test,
@@ -824,23 +730,10 @@ def generate_attack_probability_column(clf_pipe   : Pipeline,
     clf_pipe.fit(X_clf, y_clf)
     print("  Classifier fitted on full dataset.")
 
-    # ── Calibration check (in-sample Brier) ──────────────────
-    proba = clf_pipe.predict_proba(X_clf)[:, 1]   # P(attack_occurred=1)
-    brier_insample = brier_score_loss(y_clf, proba)
-    roc_insample   = roc_auc_score(y_clf, proba)
-    print(f"  In-sample ROC-AUC  : {roc_insample:.4f}  [in-sample, not for evaluation]")
-    print(f"  In-sample Brier    : {brier_insample:.4f}  [lower is better; 0=perfect]")
-
-    # ── Classification report on full data ───────────────────
-    y_pred_labels = clf_pipe.predict(X_clf)
-    separator("In-Sample Classification Report  [WARNING: training data only]")
-    print(classification_report(y_clf, y_pred_labels,
-                                target_names=["Incomplete (0)", "Completed (1)"]))
-    print("  Use CV metrics above for unbiased performance estimates.")
-
     # ── Build enriched DataFrame ──────────────────────────────
     # Start from df_clean (the preprocessed raw DataFrame, index aligned)
     # so all original columns are preserved in the output.
+    proba = clf_pipe.predict_proba(X_clf)[:, 1]   # P(attack_occurred=1)
     df_out = df_clean.reset_index(drop=True).copy()
 
     df_out["attack_occurred"]        = y_clf.values
@@ -859,27 +752,25 @@ def generate_attack_probability_column(clf_pipe   : Pipeline,
 
     df_out["risk_band"] = df_out["attack_probability_pct"].apply(assign_risk_band)
 
-    # ── Risk band distribution ────────────────────────────────
-    separator("Attack Probability — Risk Band Distribution")
-    band_order = ["Low", "Moderate", "High", "Critical"]
-    band_counts = df_out["risk_band"].value_counts().reindex(band_order, fill_value=0)
-    for band, cnt in band_counts.items():
-        pct_rows = cnt / len(df_out) * 100
-        print(f"  {band:<10}: {cnt:>5,} rows  ({pct_rows:.1f}%)")
+    # ── Build remaining output
+    separator("STEP 9d — Insurance Premium Layer")
+    df_out = append_premium_columns(df_out)
+    print(f"  Default insured value : ${DEFAULT_INSURED_VALUE:,.0f}")
+    print("  Formula  : P = (p × V × LGD × λ_region × (1+θ)) + V × r_base")
+    print("  Refs     : Bowers et al.(1997); Stopford(2009); ICC IMB(2020);")
+    print("             Swiss Re(2011); IUMI(2019); JWC Listed Areas(2023)")
+    print_premium_statistics(df_out)
 
-    # ── Probability stats ─────────────────────────────────────
-    separator("attack_probability_pct — Descriptive Stats")
-    prob_desc = df_out["attack_probability_pct"].describe()
-    print(prob_desc.round(2).to_string())
+    # ── Write CSV ─────────────────────────────────────────────
+    df_out.to_csv(output_path, index=False)
+    print(f"\n  Output CSV written to: {output_path}")
+    print(f"  Rows: {len(df_out):,}   Columns: {df_out.shape[1]}")
+    print(f"  New columns added: attack_occurred, attack_probability_pct,")
+    print(f"                     risk_band, lambda_region, expected_loss_usd,")
+    print(f"                     risk_premium_usd, base_premium_usd,")
+    print(f"                     total_premium_usd, premium_rate_pct")
 
-    # ── Sample output ─────────────────────────────────────────
-    separator("Sample Output Rows (5 highest probability)")
-    cols_show = ["year", "region", "attack_type", "vessel_status",
-                 "shore_distance", "attack_occurred",
-                 "attack_probability_pct", "risk_band"]
-    top5 = (df_out.sort_values("attack_probability_pct", ascending=False)
-                  .head(5)[cols_show])
-    print(top5.to_string(index=False))
+    return df_out
 
     separator("Sample Output Rows (5 lowest probability)")
     bot5 = (df_out.sort_values("attack_probability_pct", ascending=True)
@@ -979,25 +870,16 @@ def main() -> None:
     print(f"    Dataset size     : {len(X):,} samples")
     print(f"    Numeric features : {len(numeric_cols)}")
     print(f"    Categorical cols : {len(cat_cols)}  (OHE expanded inside pipeline)")
-    print(f"    CV folds         : 10")
-    print(f"    Mean Test R2     : {cv_metrics['r2_test'].mean():.4f} "
-          f"(+/- {cv_metrics['r2_test'].std():.4f})")
-    print(f"    Mean Test MAE    : {cv_metrics['mae_test'].mean():.4f}  (log km)")
-    print(f"    Mean Test RMSE   : {cv_metrics['rmse_test'].mean():.4f}  (log km)")
-    reg_gap = cv_metrics['r2_train'].mean() - cv_metrics['r2_test'].mean()
-    print(f"    Train-Test R2 Gap: {reg_gap:.4f}  "
-          + ("  [No overfitting]" if reg_gap < 0.05 else "  [Some overfitting]"))
+    print(f"    Cross-validation metrics are not displayed for regression.")
     print()
     print("  CLASSIFICATION (attack_occurred probability)")
     print(f"    Dataset size     : {len(X_clf):,} samples")
     print(f"    CV folds         : 10  (Stratified)")
-    print(f"    Mean Test ROC-AUC: {clf_cv['roc_test'].mean():.4f} "
-          f"(+/- {clf_cv['roc_test'].std():.4f})")
     print(f"    Mean Test Accuracy: {clf_cv['acc_test'].mean():.4f}")
     print(f"    Mean Test Brier  : {clf_cv['brier_test'].mean():.4f}  (lower=better)")
-    clf_gap = clf_cv['roc_train'].mean() - clf_cv['roc_test'].mean()
-    print(f"    Train-Test AUC Gap: {clf_gap:.4f}  "
-          + ("  [No overfitting]" if clf_gap < 0.03 else "  [Some overfitting]"))
+    acc_gap = clf_cv['acc_train'].mean() - clf_cv['acc_test'].mean()
+    print(f"    Train-Test Accuracy Gap: {acc_gap:.4f}  "
+          + ("  [No overfitting]" if acc_gap < 0.03 else "  [Some overfitting]"))
     print()
     print(f"  OUTPUT CSV       : {OUTPUT_PATH}")
     print(f"    Rows           : {len(df_with_prob):,}")
