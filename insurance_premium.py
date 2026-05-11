@@ -1,54 +1,3 @@
-"""
-insurance_premium.py
-====================
-Maritime Piracy Insurance Premium Calculator
-============================================
-
-ACADEMIC BASIS
---------------
-The premium model implements the actuarial Expected-Value (EV) pricing
-principle with a safety loading, which is foundational in non-life insurance
-pricing theory:
-
-  Net Premium   = E[Loss]          [Bowers et al., 1997]
-  Gross Premium = E[Loss] × (1+θ)  [safety-loading form; Bowers et al., 1997]
-
-For maritime piracy war-risk policies the expected loss is decomposed as:
-
-  E[Loss] = p_attack × V × LGD × λ_region
-
-where each term has an empirical calibration source:
-
-  p_attack    – ML-predicted probability that a piracy incident results in a
-                completed attack (output of GradientBoostingClassifier).
-  V           – Insured value (USD).  Typical range: $5M–$80M for bulk/tanker.
-  LGD (Loss   – Fraction of V lost in a completed attack.  Calibrated at 0.35
-  Given         (35%) following average hijacking / cargo loss estimates in
-  Default)      ICC International Maritime Bureau Global Piracy Report 2020;
-                also aligned with IMO MSC working paper estimates.
-  λ_region    – JWC (Joint War Committee) breach-of-warranty regional
-                multiplier, reflecting declared war/piracy-risk areas.
-                Values derived from Stopford (2009) Maritime Economics 3rd ed.,
-                Table 14.3, and updated from Lloyd's JWC Listed Areas (2023).
-  θ (theta)   – Underwriter risk/profit safety loading (default 0.20 = 20%).
-                Consistent with Swiss Re (2011) piracy-risk margin guidance
-                and standard Lloyd's war-risk market practice.
-
-An annual base war-risk rate r_base is added as a contractual floor:
-
-  r_base = 0.05% p.a. of insured value  [IUMI Ocean Hull Statistics 2019]
-
-Full voyage-premium formula:
-  P_voyage = (p_attack × V × LGD × λ_region × (1 + θ)) + (V × r_base)
-
-References:
-  Bowers, N.L. et al. (1997). Actuarial Mathematics, 2nd ed. Society of Actuaries.
-  Stopford, M. (2009). Maritime Economics, 3rd ed. Routledge, Ch. 14.
-  ICC IMB (2020). Piracy and Armed Robbery Against Ships – Annual Report 2019.
-  Swiss Re (2011). Understanding Piracy and Maritime Terrorism Risks.
-  IUMI (2019). Ocean Hull Statistics Factfile.
-  Lloyd's / JWC. Listed Areas for Hull War, Strikes & Related Perils (2023).
-"""
 
 from __future__ import annotations
 
@@ -60,48 +9,45 @@ import pandas as pd
 import numpy as np
 
 
-# ── Regional JWC multipliers ──────────────────────────────────────────────────
-# Source: Stopford (2009) Table 14.3 + Lloyd's JWC Listed Areas (2023).
-# Multiplier embeds regional piracy frequency, consequence severity, and
-# JWC breach-of-warranty premium structure.
+
 REGION_MULTIPLIERS: dict[str, float] = {
-    "Gulf of Aden":                2.50,   # JWC highest-risk Listed Area
-    "Indian Ocean":                2.00,   # Somali Basin corridor
-    "Middle East & North Africa":  1.90,   # includes Arabian Sea approaches
-    "West Africa":                 2.00,   # Gulf of Guinea — fast-rising risk
-    "South Asia":                  1.60,   # Bangladesh, India coastal waters
-    "Malacca Strait":              1.80,   # Singapore Strait / Indonesia
-    "East Asia & Pacific":         1.40,   # South China Sea, Philippines
-    "South America":               1.30,   # Venezuela, Ecuador, Peru
+    "Gulf of Aden":                2.50,  
+    "Indian Ocean":                2.00,  
+    "Middle East & North Africa":  1.90,   
+    "West Africa":                 2.00,   
+    "South Asia":                  1.60,   
+    "Malacca Strait":              1.80,   
+    "East Asia & Pacific":         1.40,   
+    "South America":               1.30,  
     "Central America & Caribbean": 1.20,
-    "Sub-Saharan Africa":          1.70,   # East/West Africa coastal blend
+    "Sub-Saharan Africa":          1.70,   
     "Europe & Central Asia":       1.05,
-    "North America":               1.00,   # near-zero piracy risk baseline
-    "default":                     1.00,   # fallback for unlisted regions
+    "North America":               1.00,   
+    "default":                     1.00,  
 }
 
-# Default economic parameters
-DEFAULT_LGD       = 0.35       # Loss Given Default (ICC IMB 2020)
+#Default economic parameters
+DEFAULT_LGD       = 0.35       # Loss Given Default(ICC IMB 2020)
 DEFAULT_THETA     = 0.20       # safety loading (Swiss Re 2011)
-DEFAULT_BASE_RATE = 0.0005     # 0.05% p.a. base war-risk rate (IUMI 2019)
-DEFAULT_INSURED_VALUE = 25_000_000.0  # USD — representative bulk carrier hull
+DEFAULT_BASE_RATE = 0.0005    
+DEFAULT_INSURED_VALUE = 25_000_000.0  # USD  representative bulk carrier hull
 
 
 @dataclass
 class PremiumResult:
-    """Structured result returned by calculate_premium()."""
-    p_attack:           float  # input probability (0–1)
-    insured_value_usd:  float  # V — insured value
-    region:             str    # voyage region
-    lgd:                float  # Loss-Given-Default fraction
-    theta:              float  # safety loading
-    lambda_region:      float  # JWC regional multiplier
-    expected_loss_usd:  float  # p × V × LGD × λ
-    risk_premium_usd:   float  # expected_loss × (1 + θ)
-    base_premium_usd:   float  # V × r_base (annual floor)
-    total_premium_usd:  float  # risk_premium + base_premium
-    premium_rate_pct:   float  # total_premium / V × 100
-    risk_band:          str    # "Low" / "Moderate" / "High" / "Critical"
+  
+    p_attack:           float 
+    insured_value_usd:  float 
+    region:             str   
+    lgd:                float  
+    theta:              float 
+    lambda_region:      float  
+    expected_loss_usd:  float  #p × V × LGD × λ
+    risk_premium_usd:   float  
+    base_premium_usd:   float 
+    total_premium_usd:  float  
+    premium_rate_pct:   float 
+    risk_band:          str    
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -130,7 +76,7 @@ class PremiumResult:
 
 
 def _assign_risk_band(p_attack: float) -> str:
-    """Classify probability into IMB-aligned risk tiers."""
+    
     pct = p_attack * 100
     if pct < 25:
         return "Low"
@@ -150,39 +96,7 @@ def calculate_premium(
     theta:          float = DEFAULT_THETA,
     base_rate:      float = DEFAULT_BASE_RATE,
 ) -> PremiumResult:
-    """
-    Compute a voyage-level piracy insurance premium.
-
-    Formula (Bowers et al., 1997 + Stopford, 2009):
-        P = (p × V × LGD × λ_region × (1 + θ)) + (V × r_base)
-
-    Parameters
-    ----------
-    p_attack : float
-        Attack completion probability in [0, 1] from the ML classifier.
-    region : str
-        Voyage / incident region.  Must match a key in REGION_MULTIPLIERS
-        or falls back to "default" multiplier (1.0).
-    insured_value : float
-        Hull + cargo insured value in USD.  Default: $25,000,000.
-    lgd : float
-        Loss-Given-Default fraction.  Default: 0.35 (ICC IMB 2020).
-    theta : float
-        Underwriter safety / profit loading factor.  Default: 0.20 (Swiss Re 2011).
-    base_rate : float
-        Annual base war-risk rate as decimal.  Default: 0.0005 (IUMI 2019).
-
-    Returns
-    -------
-    PremiumResult
-        Dataclass with all intermediate and final premium components.
-
-    Raises
-    ------
-    ValueError
-        If p_attack is not in [0, 1], or insured_value <= 0, or lgd not in (0, 1].
-    """
-    # ── Input validation (system boundary) ────────────────────────────────────
+ 
     if not (0.0 <= p_attack <= 1.0):
         raise ValueError(f"p_attack must be in [0, 1]; got {p_attack}")
     if insured_value <= 0:
@@ -194,22 +108,21 @@ def calculate_premium(
     if base_rate < 0:
         raise ValueError(f"base_rate must be >= 0; got {base_rate}")
 
-    # ── JWC regional multiplier ───────────────────────────────────────────────
+   
     lambda_region = REGION_MULTIPLIERS.get(region, REGION_MULTIPLIERS["default"])
 
-    # ── Expected loss (actuarial EV principle; Bowers et al. 1997) ────────────
+
     expected_loss = p_attack * insured_value * lgd * lambda_region
 
-    # ── Risk premium: expected loss + safety loading (Swiss Re 2011) ──────────
+  
     risk_premium = expected_loss * (1.0 + theta)
 
-    # ── Annual base war-risk floor (IUMI 2019) ─────────────────────────────────
+    
     base_premium = insured_value * base_rate
 
-    # ── Total voyage premium ──────────────────────────────────────────────────
     total_premium = risk_premium + base_premium
 
-    # ── Expressed as %  of insured value ─────────────────────────────────────
+   
     premium_rate_pct = (total_premium / insured_value) * 100.0
 
     return PremiumResult(
@@ -237,52 +150,14 @@ def append_premium_columns(
     prob_col:       str   = "attack_probability_pct",
     region_col:     str   = "region",
 ) -> pd.DataFrame:
-    """
-    Vectorised: adds insurance premium columns to a DataFrame that already
-    contains attack_probability_pct and region columns.
-
-    The function is vectorised using pandas/numpy operations for speed
-    on the full 6,555-row dataset.
-
-    New columns added
-    -----------------
-    lambda_region       : JWC regional multiplier for each row
-    expected_loss_usd   : p × V × LGD × λ_region
-    risk_premium_usd    : expected_loss × (1 + θ)
-    base_premium_usd    : V × r_base  (constant per row — same insured value)
-    total_premium_usd   : risk_premium + base_premium
-    premium_rate_pct    : total_premium / V × 100
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Must contain columns for prob_col and region_col.
-    insured_value : float
-        Insured hull + cargo value in USD for all rows.  Default: $25M.
-    lgd, theta, base_rate : float
-        Premium parameters (see calculate_premium docstring).
-    prob_col : str
-        Column holding attack probability in percentage points (0–100).
-    region_col : str
-        Column holding the region string.
-
-    Returns
-    -------
-    pd.DataFrame  (copy with added columns)
-    """
     df = df.copy()
-
-    # Convert percentage → decimal probability
     p_vec = df[prob_col].clip(0, 100) / 100.0
 
-    # Map each region to its JWC multiplier (vectorised)
     lambda_vec = (
         df[region_col]
         .map(REGION_MULTIPLIERS)
         .fillna(REGION_MULTIPLIERS["default"])
     )
-
-    # Actuarial EV formula (vectorised)
     expected_loss_vec = p_vec * insured_value * lgd * lambda_vec
     risk_premium_vec  = expected_loss_vec * (1.0 + theta)
     base_premium_vec  = insured_value * base_rate          # scalar × len(df)
@@ -299,10 +174,6 @@ def append_premium_columns(
 
 
 def print_premium_statistics(df: pd.DataFrame) -> None:
-    """
-    Print a formatted summary of premium columns in a DataFrame produced
-    by append_premium_columns().
-    """
     req_cols = ["total_premium_usd", "premium_rate_pct",
                 "expected_loss_usd", "risk_premium_usd"]
     missing  = [c for c in req_cols if c not in df.columns]
