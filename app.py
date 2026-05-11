@@ -41,7 +41,7 @@ warnings.filterwarnings("ignore")
 # ╚══════════════════════════════════════════════════════════╝
 
 def separator(title: str = "", char: str = "─", width: int = 65) -> None:
-    """Print a visual section separator."""
+  
     if title:
         pad   = (width - len(title) - 2) // 2
         print(f"\n{char*pad} {title} {char*pad}")
