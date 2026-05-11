@@ -1,9 +1,3 @@
-"""
-gui.py — MarineGuard  ·  WarRisk and Maritime Insurance
-Production Streamlit dashboard: deep-ocean aesthetic, 3-D bathymetric
-background illusion, glassmorphic cards, ortho globe, density heatmap,
-sunburst, animated CSS, zero AI-slop.
-"""
 
 import os
 import sys
